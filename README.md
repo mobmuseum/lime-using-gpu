@@ -1,4 +1,4 @@
-# Running LIME GPU (Milestone 1)
+# Running LIME GPU
 
 This repository contains a full Custom GPU implementation of the LIME (Local Interpretable Model-agnostic Explanations) algorithm's core components: Perturbation Generation, Logistic Regression Inference, and Distance & Kernel Weight Computation. 
 
