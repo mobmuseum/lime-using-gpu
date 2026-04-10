@@ -4,11 +4,13 @@ import numpy as np
 BLOCK_SIZE = 256   # CUDA threads per block
 KEEP_PROB  = 0.5   # Probability a feature is kept in each perturbation
 
-# Returns an appropriate kernel bandwidth for the given metric:
+# Returns an appropriate kernel bandwidth for the given metric.
+# A tighter sigma produces a wider spread of kernel weights, giving
+# the surrogate a stronger locality gradient to learn from.
 def adaptive_kernel_width(n_features: int, metric: str = "euclidean") -> float:
     if metric == "cosine":
         return 0.25
-    return 0.75 * (n_features ** 0.5)
+    return 0.25 * (n_features ** 0.5)   # tighter than 0.75 → wider weight spread
 
 # Holds perturbed samples and their binary masks on the GPU.
 @dataclass
