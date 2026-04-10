@@ -171,6 +171,10 @@ def plot_attributions(
             fontsize=8.5, color=TEXT_CLR, fontweight="bold",
         )
 
+    # Set x-limits with padding to prevent label overlap with y-axis
+    max_val = np.max(np.abs(vals))
+    ax.set_xlim(-max_val * 1.25, max_val * 1.25)
+
     # Zero line
     ax.axvline(0, color="#aaaacc", linewidth=1.0, linestyle="--", alpha=0.6)
 
