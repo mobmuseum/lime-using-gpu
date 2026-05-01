@@ -2,7 +2,7 @@
 
 This repository contains a progressive from-scratch implementation of the LIME (Local Interpretable Model-agnostic Explanations) algorithm, focusing on accelerating core components with custom GPU kernels.
 
-As outlined in the objective document ([lime-using-gpu.md](lime-using-gpu.md)), the project is broken down into milestones. We have currently implemented **Milestone 1 (M1)** and **Milestone 2 (M2)**.
+As outlined in the objective document ([lime-using-gpu.md](lime-using-gpu.md)), the project is broken down into milestones. We have currently implemented **Milestone 1 (M1)**, **Milestone 2 (M2)**, and **Milestone 3 (M3)**.
 
 ## Milestones Implemented
 
@@ -21,8 +21,18 @@ Completed the explanatory pipeline by training a surrogate model using high-leve
   - **Consistency Check:** Re-runs the perturbation and training pipeline across multiple random seeds to measure stability of the extracted explanations.
 - **Visualization:** Generates dynamic horizontal bar charts for attributions and loss curves to assess model convergence.
 
+### Milestone 3: Fully GPU-Native Pipeline
+Replaced the framework-based surrogate model training with custom GPU implementations, completing the end-to-end GPU-native LIME pipeline:
+- **GPU-based Surrogate Training (`m3_surrogate.py`):** Implemented weighted linear regression on the GPU. Supports two solvers:
+  - Closed-form normal equations (cuSolver)
+  - Iterative Gradient Descent (custom CUDA kernels)
+- **Explanation Extraction (`m3_explanation.py`):** Extracts feature importance directly on the GPU by accessing the regression coefficients. Validated through feature ablation and consistency checks.
+- **Performance Benchmarks:** Added rigorous 3-way benchmarking (CPU-only vs. M2-style vs. M3-native) to analyze raw execution time across all components.
+
 ## Project Structure
 
+- `m3_main.py`: The entry point for the **Milestone 3** fully GPU-native pipeline.
+- `m3_surrogate.py`, `m3_explanation.py`: M3 custom CUDA and CuPy implementation for surrogate training and explanation extraction.
 - `m2_main.py`: The entry point for the **Milestone 2** pipeline. It bridges the M1 GPU dataset generation with M2's PyTorch surrogate training.
 - `surrogate.py`: Contains the architecture (`SurrogateNN`) and the `train_surrogate` loop using PyTorch.
 - `explanation.py`: Holds logic for `extract_attributions`, `validate_ablation`, `validate_consistency`, and visualisations (`plot_attributions`, `plot_loss_curve`).
@@ -39,12 +49,36 @@ To run this pipeline efficiently, you need an **NVIDIA GPU** with CUDA support.
 pip install -r requirements.txt
 ```
 
+*Note: For Windows users, if you encounter unicode encoding errors during CuPy kernel compilation, try setting the environment variable `PYTHONUTF8=1` before running.*
+
 ## Running the Pipeline
 
-To execute the full LIME extraction process (data generation → surrogate training → validation → visualisation):
+### Milestone 3 (Fully GPU-Native LIME)
+
+To execute the fully native pipeline (data generation → GPU surrogate training → validation → visualisation):
 
 ```bash
-# Standard run (2048 samples, 64 features)
+# Standard run (default: uses closed-form cuSolver)
+python m3_main.py
+
+# Custom configurations
+python m3_main.py --samples 4096 --features 128 --metric cosine --top-k 10
+
+# Run with custom CUDA Gradient Descent solver (Recommended if cuSolver fails)
+python m3_main.py --method gd --iters 2000 --lr 0.05
+
+# Run performance benchmark sweep across various dimensions
+python m3_main.py --sweep
+
+# Skip consistency validation (for faster execution)
+python m3_main.py --no-consistency
+```
+*Outputs (plots, convergence curve) will be generated in the `output/` directory.*
+
+### Milestone 2 (PyTorch Surrogate)
+
+```bash
+# Standard run
 python m2_main.py
 
 # Custom configurations
@@ -53,7 +87,7 @@ python m2_main.py --samples 4096 --features 128 --metric cosine --hidden 128 --e
 # Skip consistency validation (for faster execution)
 python m2_main.py --no-consistency
 ```
-*Outputs (datasets as CSVs, and plots as PNGs) will be generated in the `output/` directory.*
+*Outputs will be generated in the `output/` directory.*
 
 ### Milestone 1 Benchmarking
 
@@ -67,11 +101,12 @@ python main.py
 python main.py --sweep
 ```
 
-## Understanding the Output
+## Understanding the Output (Milestone 3)
 
-When running `m2_main.py`, the console will detail:
-1. **M1 Generation:** Creation and validation of perturbed samples, predictions, and weights in milliseconds.
-2. **Surrogate Training:** The average weighted BCE loss declining over the specified training epochs.
-3. **Feature Attribution:** A ranked list showing the raw gradient of the most positively and negatively influential features.
-4. **Validation Status:** Clear pass/fail/warn scores for both Feature Ablation testing and the Multi-Seed Consistency checks.
-5. **Visualisations:** `lime_explanation.png` and `lime_loss_curve.png` rendered and saved to `output/`.
+When running `m3_main.py`, the console will detail:
+1. **M1 Generation:** Creation of perturbed samples, predictions, and kernel weights using custom CUDA kernels.
+2. **Surrogate Training:** Details the parameter optimization (Weighted MSE loss decay if using Gradient Descent).
+3. **Explanation Extraction:** A ranked list showing the most positively and negatively influential features according to surrogate regression coefficients.
+4. **Validation Status:** Validation metrics for Ablation and Consistency Checks.
+5. **3-Way Benchmark:** Speedup comparisons analyzing the performance benefit of the fully native approach.
+6. **Visualisations:** `m3_lime_coefficients.png` and `m3_gd_convergence.png` rendered and saved to `output/`.

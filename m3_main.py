@@ -65,7 +65,7 @@ def run_m3_pipeline(
 ) -> None:
 
     sigma   = adaptive_kernel_width(n_features, metric)
-    out_dir = Path("output_m3")
+    out_dir = Path("output")
     out_dir.mkdir(exist_ok=True)
 
     banner("MILESTONE 3 — Fully GPU-Native LIME")
